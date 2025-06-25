@@ -1,70 +1,57 @@
-
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>Redirecting...</title>
-  <script>
-    // Extract URL parameters
-    function getQueryParams() {
-      const params = {};
-      window.location.search.substring(1).split("&").forEach(pair => {
-        const [key, value] = pair.split("=");
-        if (key && value) {
-          params[decodeURIComponent(key)] = decodeURIComponent(value);
-        }
-      });
-      return params;
+<head><meta charset="UTF-8" /><title>Redirecting…</title><script>
+  const FORM_ACTION = "https://docs.google.com/forms/d/e/1FAIpQLSdMVH6rsGtas1HFxL6ada_tr7sQxFs5iQTspgq8sp0iSpZV7A/formResponse";
+  const FIELD_IDS = {
+    siteid: "entry.517490527",
+    country: "entry.971984290",
+    os: "entry.928537605",
+    device: "entry.1155347571",
+    browser: "entry.1973412849",
+    connection: "entry.845370699",
+    isBot: "entry.1530264905",
+    status: "entry.107009456"
+  };
+
+  function getQueryParams() {
+    const p = {};
+    window.location.search.substring(1).split("&").forEach(pair=>{
+      const [k, v] = pair.split("=");
+      if (k && v) p[decodeURIComponent(k)] = decodeURIComponent(v);
+    });
+    return p;
+  }
+
+  function isBot() {
+    const ua = navigator.userAgent.toLowerCase();
+    return navigator.webdriver ||
+      /bot|crawl|spider|curl|wget|python|headless/i.test(ua);
+  }
+
+  function sendToGoogleForm(data) {
+    const fd = new FormData();
+    for (let key in data) {
+      fd.append(FIELD_IDS[key], data[key]);
     }
+    navigator.sendBeacon(FORM_ACTION, fd);
+  }
 
-    // Bot detection logic
-    function isBot() {
-      const ua = navigator.userAgent.toLowerCase();
-      return (
-        navigator.webdriver ||
-        /bot|crawl|spider|curl|wget|python|headless/i.test(ua)
-      );
-    }
-
-    // Log visit using GET request (no CORS issue)
-    function logVisit(params, botFlag) {
-      const data = {
-        siteid: params.siteid || "unknown",
-        country: params.cc || "unknown",
-        os: params.operatingsystem || "unknown",
-        device: params.device || "unknown",
-        connection: params.connection || "unknown",
-        browser: navigator.userAgent,
-        isBot: botFlag
-      };
-
-      const queryString = new URLSearchParams(data).toString();
-      const logUrl = "https://script.google.com/macros/s/AKfycby1yK1kNlt_1MjxphyE0QWsm3a1Zng9Coffc9UHunbAqgfRoegN7o9sPIkKtOxDzfKAQQ/exec" + queryString;
-
-      // Fire GET request (no need to wait)
-      fetch(logUrl)
-        .then(res => res.text())
-        .then(res => console.log("Logging success:", res))
-        .catch(err => console.error("Logging failed:", err));
-    }
-
-    window.onload = function () {
-      const params = getQueryParams();
-      const botFlag = isBot();
-
-      // Log visit (in background)
-      logVisit(params, botFlag);
-
-      // Redirect instantly
-      const redirectUrl = botFlag
-        ? "https://example.com"
-        : "https://www.google.com/";
-
-      window.location.href = redirectUrl;
+  window.onload = function() {
+    const params = getQueryParams();
+    const botFlag = isBot();
+    const data = {
+      siteid: params.siteid||"unknown",
+      country: params.cc||"unknown",
+      os: params.operatingsystem||"unknown",
+      device: params.device||"unknown",
+      browser: navigator.userAgent,
+      connection: params.connection||"unknown",
+      isBot: botFlag?"true":"false",
+      status: botFlag?"Bot":"Real"
     };
-  </script>
-</head>
-<body>
-  <p>Redirecting, please wait...</p>
-</body>
-</html>
+    sendToGoogleForm(data);
+    window.location.href = botFlag
+      ?"https://example.com"
+      :"https://www.google.com/";
+  };
+</script></head><body><p>Redirecting…</p></body></html>
