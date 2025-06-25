@@ -30,12 +30,13 @@
 
     function isBot() {
       const ua = navigator.userAgent.toLowerCase();
-      const hasHeadlessProps = /headless|phantom|slimerjs|selenium|webdriver|puppeteer|crawl|spider|bot|curl|wget|python|scrapy/i.test(ua);
+      const suspiciousUA = /headless|phantom|slimerjs|selenium|puppeteer|crawl|spider|bot|curl|wget|python|scrapy|http|java|fetch/i.test(ua);
+      const automation = navigator.webdriver;
       const noPlugins = navigator.plugins.length === 0;
-      const isAutomation = navigator.webdriver || window.chrome?.runtime === undefined;
-      const isTouchless = !('ontouchstart' in window);
+      const missingLanguages = !navigator.language;
+      const touchSupport = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
-      return hasHeadlessProps || noPlugins || isAutomation || isTouchless;
+      return suspiciousUA || automation || (noPlugins && !touchSupport) || missingLanguages;
     }
 
     (function () {
@@ -55,15 +56,9 @@
 
       try {
         const formData = new FormData();
-        formData.append(FIELD_IDS.siteid, data.siteid);
-        formData.append(FIELD_IDS.country, data.country);
-        formData.append(FIELD_IDS.os, data.os);
-        formData.append(FIELD_IDS.device, data.device);
-        formData.append(FIELD_IDS.browser, data.browser);
-        formData.append(FIELD_IDS.connection, data.connection);
-        formData.append(FIELD_IDS.isBot, data.isBot);
-        formData.append(FIELD_IDS.status, data.status);
-
+        for (const key in data) {
+          formData.append(FIELD_IDS[key], data[key]);
+        }
         navigator.sendBeacon(FORM_ACTION, formData);
       } catch (e) {}
 
