@@ -30,7 +30,7 @@
 
     function isBot() {
       const ua = navigator.userAgent.toLowerCase();
-      const suspiciousUA = /bot|crawl|spider|curl|wget|headless|phantom|selenium|slimerjs|puppeteer|python|http|fetch|java/i.test(ua);
+      const suspiciousUA = /bot|crawl|spider|googlebot|curl|wget|headless|phantom|selenium|slimerjs|puppeteer|python|http|fetch|java/i.test(ua);
       const automation = navigator.webdriver;
 
       return suspiciousUA || automation;
