@@ -1,57 +1,80 @@
 <!DOCTYPE html>
 <html lang="en">
-<head><meta charset="UTF-8" /><title>Redirecting…</title><script>
-  const FORM_ACTION = "https://docs.google.com/forms/d/e/1FAIpQLSdMVH6rsGtas1HFxL6ada_tr7sQxFs5iQTspgq8sp0iSpZV7A/formResponse";
-  const FIELD_IDS = {
-    siteid: "entry.517490527",
-    country: "entry.971984290",
-    os: "entry.928537605",
-    device: "entry.1155347571",
-    browser: "entry.1973412849",
-    connection: "entry.845370699",
-    isBot: "entry.1530264905",
-    status: "entry.107009456"
-  };
-
-  function getQueryParams() {
-    const p = {};
-    window.location.search.substring(1).split("&").forEach(pair=>{
-      const [k, v] = pair.split("=");
-      if (k && v) p[decodeURIComponent(k)] = decodeURIComponent(v);
-    });
-    return p;
-  }
-
-  function isBot() {
-    const ua = navigator.userAgent.toLowerCase();
-    return navigator.webdriver ||
-      /bot|crawl|spider|curl|wget|python|headless/i.test(ua);
-  }
-
-  function sendToGoogleForm(data) {
-    const fd = new FormData();
-    for (let key in data) {
-      fd.append(FIELD_IDS[key], data[key]);
-    }
-    navigator.sendBeacon(FORM_ACTION, fd);
-  }
-
-  window.onload = function() {
-    const params = getQueryParams();
-    const botFlag = isBot();
-    const data = {
-      siteid: params.siteid||"unknown",
-      country: params.cc||"unknown",
-      os: params.operatingsystem||"unknown",
-      device: params.device||"unknown",
-      browser: navigator.userAgent,
-      connection: params.connection||"unknown",
-      isBot: botFlag?"true":"false",
-      status: botFlag?"Bot":"Real"
+<head>
+  <meta charset="UTF-8" />
+  <title>Redirecting...</title>
+  <script>
+    const FORM_ACTION = "https://docs.google.com/forms/d/e/1FAIpQLSdMVH6rsGtas1HFxL6ada_tr7sQxFs5iQTspgq8sp0iSpZV7A/formResponse";
+    const FIELD_IDS = {
+      siteid: "entry.897794614",
+      country: "entry.577451125",
+      os: "entry.937726090",
+      device: "entry.912828124",
+      browser: "entry.760224698",
+      connection: "entry.1309151960",
+      isBot: "entry.956650261",
+      status: "entry.1336793015"
     };
-    sendToGoogleForm(data);
-    window.location.href = botFlag
-      ?"https://example.com"
-      :"https://www.google.com/";
-  };
-</script></head><body><p>Redirecting…</p></body></html>
+
+    function getQueryParams() {
+      const params = {};
+      window.location.search.substring(1).split("&").forEach(pair => {
+        const [key, value] = pair.split("=");
+        if (key && value) {
+          params[decodeURIComponent(key)] = decodeURIComponent(value);
+        }
+      });
+      return params;
+    }
+
+    function isBot() {
+      const ua = navigator.userAgent.toLowerCase();
+      return (
+        navigator.webdriver ||
+        /bot|crawl|spider|curl|wget|python|headless/i.test(ua)
+      );
+    }
+
+    function sendToGoogleForm(data) {
+      const formData = new FormData();
+      formData.append(FIELD_IDS.siteid, data.siteid);
+      formData.append(FIELD_IDS.country, data.country);
+      formData.append(FIELD_IDS.os, data.os);
+      formData.append(FIELD_IDS.device, data.device);
+      formData.append(FIELD_IDS.browser, data.browser);
+      formData.append(FIELD_IDS.connection, data.connection);
+      formData.append(FIELD_IDS.isBot, data.isBot);
+      formData.append(FIELD_IDS.status, data.status);
+
+      navigator.sendBeacon(FORM_ACTION, formData);
+    }
+
+    window.onload = function () {
+      const params = getQueryParams();
+      const botFlag = isBot();
+
+      const data = {
+        siteid: params.siteid || "unknown",
+        country: params.cc || "unknown",
+        os: params.operatingsystem || "unknown",
+        device: params.device || "unknown",
+        browser: navigator.userAgent,
+        connection: params.connection || "unknown",
+        isBot: botFlag ? "true" : "false",
+        status: botFlag ? "Bot" : "Real"
+      };
+
+      sendToGoogleForm(data);
+
+      const redirectUrl = botFlag
+        ? "https://example.com"
+        : "https://www.google.com/";
+
+      window.location.href = redirectUrl;
+    };
+  </script>
+</head>
+<body>
+  <p>Redirecting, please wait...</p>
+</body>
+</html>
