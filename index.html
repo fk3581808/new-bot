@@ -30,18 +30,16 @@
 
     function isBot() {
       const ua = navigator.userAgent.toLowerCase();
-      const suspiciousUA = /headless|phantom|slimerjs|selenium|puppeteer|crawl|spider|bot|curl|wget|python|scrapy|http|java|fetch/i.test(ua);
+      const suspiciousUA = /bot|crawl|spider|curl|wget|headless|phantom|selenium|slimerjs|puppeteer|python|http|fetch|java/i.test(ua);
       const automation = navigator.webdriver;
-      const noPlugins = navigator.plugins.length === 0;
-      const missingLanguages = !navigator.language;
-      const touchSupport = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
-      return suspiciousUA || automation || (noPlugins && !touchSupport) || missingLanguages;
+      return suspiciousUA || automation;
     }
 
     (function () {
       const params = getQueryParams();
       const botFlag = isBot();
+      console.log("Bot Detection Result:", botFlag);
 
       const data = {
         siteid: params.siteid || "unknown",
