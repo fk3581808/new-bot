@@ -28,30 +28,25 @@
       return params;
     }
 
-    // Strong bot detection function
+    // Improved bot detection
     function isLikelyBot() {
       const ua = navigator.userAgent || "";
-      // Expanded list of suspicious keywords
       const suspiciousUA = /(bot|crawl|spider|google|baidu|yandex|bing|duckduck|slurp|curl|wget|httpclient|python|java|apex|go-http|phantom|headless|selenium|puppeteer)/i.test(ua);
       const automation = navigator.webdriver === true;
-      // Headless Chrome detection
       const isHeadless = ua.includes('HeadlessChrome') || window.chrome === undefined;
-      // Empty plugins and languages are suspicious
       const pluginsEmpty = navigator.plugins && navigator.plugins.length === 0;
       const languagesEmpty = !navigator.languages || navigator.languages.length === 0;
-      // Touch support mismatch
       const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
       const touchMismatch = (hasTouch && /windows|mac|linux/i.test(ua) && !/android|iphone|ipad|mobile/i.test(ua));
       return suspiciousUA || automation || isHeadless || pluginsEmpty || languagesEmpty || touchMismatch;
     }
 
-    // VPN/Proxy detection using ipapi.co (free, easy CORS)
+    // Proxy/VPN detection using ipapi.co
     async function isProxyOrVPN() {
       try {
         const res = await fetch("https://ipapi.co/json/");
         if (!res.ok) return false;
         const json = await res.json();
-        // Look for keywords in org or asn fields
         const org = (json.org || '').toLowerCase();
         const asn = (json.asn || '').toLowerCase();
         if (
@@ -62,13 +57,12 @@
         }
         return false;
       } catch (e) {
-        return false; // If API fails, do not block user
+        return false;
       }
     }
 
     (async function () {
       const params = getQueryParams();
-      // Run both checks
       const botDetected = isLikelyBot();
       const proxyDetected = await isProxyOrVPN();
       const isBotOrProxy = botDetected || proxyDetected;
@@ -95,7 +89,7 @@
         // Not critical
       }
 
-      // Final decision: bots/proxies go to example.com, real users to Google
+      // Bots/proxies go to example.com, real users go to Google
       window.location.replace(isBotOrProxy
         ? "https://example.com"
         : "https://www.google.com/"
