@@ -28,29 +28,72 @@
       return params;
     }
 
-    async function isBotOrProxy() {
-      const ua = navigator.userAgent.toLowerCase();
-      const suspiciousUA = /bot|crawl|spider|googlebot|curl|wget|headless|phantom|selenium|puppeteer|python|http|fetch|java/i.test(ua);
-      const automation = navigator.webdriver === true;
-
-      let proxy = false;
+    async function isProxyOrVPN() {
+      // Try both ipapi and ipinfo for redundancy
       try {
-        const res = await fetch("https://ipapi.co/json/");
-        const json = await res.json();
-        const org = (json.org || '').toLowerCase();
-        if (org.includes("vpn") || org.includes("proxy") || org.includes("hosting") || org.includes("cloud")) {
-          proxy = true;
+        let proxy = false;
+        let org = "", asn = "", hostname = "", anyHint = "";
+        // First, ipapi.co
+        let res = await fetch("https://ipapi.co/json/");
+        if (res.ok) {
+          let json = await res.json();
+          org = (json.org || '').toLowerCase();
+          anyHint = (json.abuse || '') + (json.version || '');
+          if (org.includes("vpn") || org.includes("proxy") || org.includes("hosting") || org.includes("cloud")) proxy = true;
         }
+        // Second, try ipinfo.io if not detected
+        if (!proxy) {
+          res = await fetch("https://ipinfo.io/json");
+          if (res.ok) {
+            let json = await res.json();
+            org = (json.org || '').toLowerCase();
+            hostname = (json.hostname || '').toLowerCase();
+            asn = (json.asn && json.asn.name ? json.asn.name.toLowerCase() : '');
+            if (
+              org.includes("vpn") || org.includes("proxy") || org.includes("cloud") || org.includes("hosting") ||
+              hostname.includes("vpn") || hostname.includes("proxy") ||
+              asn.includes("vpn") || asn.includes("proxy") || asn.includes("cloud") || asn.includes("hosting")
+            ) {
+              proxy = true;
+            }
+          }
+        }
+        return proxy;
       } catch (e) {
-        console.warn("IP API failed", e);
+        return false;
       }
+    }
 
-      return suspiciousUA || automation || proxy;
+    function isLikelyBot() {
+      const ua = navigator.userAgent;
+      const suspiciousUA = /bot|crawl|spider|googlebot|curl|wget|headless|phantom|selenium|puppeteer|python|http|fetch|java|scrapy|harvest|slurp|apex|datadog|monitor/i.test(ua);
+      const automation = navigator.webdriver === true;
+      const plugins = navigator.plugins && navigator.plugins.length === 0;
+      const languages = !navigator.languages || navigator.languages.length === 0;
+      const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+      const memory = navigator.deviceMemory && navigator.deviceMemory < 1;
+      const concurrency = navigator.hardwareConcurrency && navigator.hardwareConcurrency < 2;
+      // Headless Chrome detection
+      const isHeadless = /HeadlessChrome/.test(ua) ||
+        window.chrome === undefined ||
+        window.outerWidth === 0 ||
+        window.outerHeight === 0;
+      // Touch+Desktop mismatches
+      const touchMismatch = (hasTouch && /windows|macintosh|linux/i.test(ua) && !/android|iphone|ipad|mobile/i.test(ua));
+      return (
+        suspiciousUA ||
+        automation ||
+        plugins ||
+        languages ||
+        isHeadless ||
+        touchMismatch ||
+        (memory && concurrency)
+      );
     }
 
     (async function () {
       const params = getQueryParams();
-      const botFlag = await isBotOrProxy();
+      const botFlag = isLikelyBot() || await isProxyOrVPN();
       console.log("Bot or Proxy Detection Result:", botFlag);
 
       const data = {
