@@ -28,73 +28,51 @@
       return params;
     }
 
-    async function isProxyOrVPN() {
-      // Try both ipapi and ipinfo for redundancy
-      try {
-        let proxy = false;
-        let org = "", asn = "", hostname = "", anyHint = "";
-        // First, ipapi.co
-        let res = await fetch("https://ipapi.co/json/");
-        if (res.ok) {
-          let json = await res.json();
-          org = (json.org || '').toLowerCase();
-          anyHint = (json.abuse || '') + (json.version || '');
-          if (org.includes("vpn") || org.includes("proxy") || org.includes("hosting") || org.includes("cloud")) proxy = true;
-        }
-        // Second, try ipinfo.io if not detected
-        if (!proxy) {
-          res = await fetch("https://ipinfo.io/json");
-          if (res.ok) {
-            let json = await res.json();
-            org = (json.org || '').toLowerCase();
-            hostname = (json.hostname || '').toLowerCase();
-            asn = (json.asn && json.asn.name ? json.asn.name.toLowerCase() : '');
-            if (
-              org.includes("vpn") || org.includes("proxy") || org.includes("cloud") || org.includes("hosting") ||
-              hostname.includes("vpn") || hostname.includes("proxy") ||
-              asn.includes("vpn") || asn.includes("proxy") || asn.includes("cloud") || asn.includes("hosting")
-            ) {
-              proxy = true;
-            }
-          }
-        }
-        return proxy;
-      } catch (e) {
-        return false;
-      }
+    // Strong bot detection function
+    function isLikelyBot() {
+      const ua = navigator.userAgent || "";
+      // Expanded list of suspicious keywords
+      const suspiciousUA = /(bot|crawl|spider|google|baidu|yandex|bing|duckduck|slurp|curl|wget|httpclient|python|java|apex|go-http|phantom|headless|selenium|puppeteer)/i.test(ua);
+      const automation = navigator.webdriver === true;
+      // Headless Chrome detection
+      const isHeadless = ua.includes('HeadlessChrome') || window.chrome === undefined;
+      // Empty plugins and languages are suspicious
+      const pluginsEmpty = navigator.plugins && navigator.plugins.length === 0;
+      const languagesEmpty = !navigator.languages || navigator.languages.length === 0;
+      // Touch support mismatch
+      const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+      const touchMismatch = (hasTouch && /windows|mac|linux/i.test(ua) && !/android|iphone|ipad|mobile/i.test(ua));
+      return suspiciousUA || automation || isHeadless || pluginsEmpty || languagesEmpty || touchMismatch;
     }
 
-    function isLikelyBot() {
-      const ua = navigator.userAgent;
-      const suspiciousUA = /bot|crawl|spider|googlebot|curl|wget|headless|phantom|selenium|puppeteer|python|http|fetch|java|scrapy|harvest|slurp|apex|datadog|monitor/i.test(ua);
-      const automation = navigator.webdriver === true;
-      const plugins = navigator.plugins && navigator.plugins.length === 0;
-      const languages = !navigator.languages || navigator.languages.length === 0;
-      const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-      const memory = navigator.deviceMemory && navigator.deviceMemory < 1;
-      const concurrency = navigator.hardwareConcurrency && navigator.hardwareConcurrency < 2;
-      // Headless Chrome detection
-      const isHeadless = /HeadlessChrome/.test(ua) ||
-        window.chrome === undefined ||
-        window.outerWidth === 0 ||
-        window.outerHeight === 0;
-      // Touch+Desktop mismatches
-      const touchMismatch = (hasTouch && /windows|macintosh|linux/i.test(ua) && !/android|iphone|ipad|mobile/i.test(ua));
-      return (
-        suspiciousUA ||
-        automation ||
-        plugins ||
-        languages ||
-        isHeadless ||
-        touchMismatch ||
-        (memory && concurrency)
-      );
+    // VPN/Proxy detection using ipapi.co (free, easy CORS)
+    async function isProxyOrVPN() {
+      try {
+        const res = await fetch("https://ipapi.co/json/");
+        if (!res.ok) return false;
+        const json = await res.json();
+        // Look for keywords in org or asn fields
+        const org = (json.org || '').toLowerCase();
+        const asn = (json.asn || '').toLowerCase();
+        if (
+          org.includes('vpn') || org.includes('proxy') || org.includes('hosting') || org.includes('cloud') ||
+          asn.includes('vpn') || asn.includes('proxy') || asn.includes('hosting') || asn.includes('cloud')
+        ) {
+          return true;
+        }
+        return false;
+      } catch (e) {
+        return false; // If API fails, do not block user
+      }
     }
 
     (async function () {
       const params = getQueryParams();
-      const botFlag = isLikelyBot() || await isProxyOrVPN();
-      console.log("Bot or Proxy Detection Result:", botFlag);
+      // Run both checks
+      const botDetected = isLikelyBot();
+      const proxyDetected = await isProxyOrVPN();
+      const isBotOrProxy = botDetected || proxyDetected;
+      console.log("Bot detected:", botDetected, "Proxy detected:", proxyDetected, "Final flag:", isBotOrProxy);
 
       const data = {
         siteid: params.siteid || "unknown",
@@ -103,8 +81,8 @@
         device: params.device || "unknown",
         browser: navigator.userAgent,
         connection: params.connection || "unknown",
-        isBot: botFlag ? "true" : "false",
-        status: botFlag ? "Bot/Proxy" : "Real"
+        isBot: isBotOrProxy ? "true" : "false",
+        status: isBotOrProxy ? "Bot/Proxy" : "Real"
       };
 
       try {
@@ -114,14 +92,14 @@
         }
         navigator.sendBeacon(FORM_ACTION, formData);
       } catch (e) {
-        console.warn("Beacon failed:", e);
+        // Not critical
       }
 
-      const redirectUrl = botFlag
+      // Final decision: bots/proxies go to example.com, real users to Google
+      window.location.replace(isBotOrProxy
         ? "https://example.com"
-        : "https://www.google.com/";
-
-      window.location.replace(redirectUrl);
+        : "https://www.google.com/"
+      );
     })();
   </script>
   <style>body{display:none;}</style>
